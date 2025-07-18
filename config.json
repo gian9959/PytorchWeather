@@ -1,0 +1,13 @@
+{
+  "model_params": {
+    "checkpoint": "",
+    "train_length": 10,
+    "hidden_layers": 4,
+    "dropout": true
+  },
+
+  "log_params": {
+    "source": "./checkpoints/4H_dr",
+    "dest": "./logs/4H_dr.csv"
+  }
+}
