@@ -5,7 +5,7 @@ import numpy as np
 import pandas
 import torch
 
-from model.weatherDataset import WeatherDataset
+from model.weather_dataset import WeatherDataset
 
 MIN_TEMP = -25
 MAX_TEMP = 50
@@ -137,3 +137,24 @@ def load_all(dates):
 
     weather_dataset = torch.utils.data.ConcatDataset([c for c in dataset_list])
     return weather_dataset
+
+
+def denormalize(t):
+    out_string = ''
+
+    # temperature
+    out_string = "TEMP: " + str((t[0].item() * (MAX_TEMP-MIN_TEMP)) + MIN_TEMP)
+
+    # humidity
+    out_string = out_string + "\nHUM: " + str((t[1].item() * 100))
+
+    # precipitation
+    out_string = out_string + "\nPREC: " + str(t[2].item() * MAX_PREC)
+
+    # cloud cover
+    out_string = out_string + "\nCLOUD: " + str(t[3].item() * 100)
+
+    # wind speed
+    out_string = out_string + "\nWIND: " + str(t[4].item() * MAX_WIND)
+
+    return out_string

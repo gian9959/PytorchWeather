@@ -4,7 +4,7 @@ import torch
 from alive_progress import alive_bar
 from torch import nn
 
-from model.weatherNetwork import WeatherNetwork
+from model.weather_network import WeatherNetwork
 
 
 def training(loader, model_params):

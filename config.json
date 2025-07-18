@@ -1,6 +1,6 @@
 {
   "model_params": {
-    "checkpoint": "",
+    "checkpoint": "./checkpoints/2H_dr/Epoch100_checkpoint.pth",
     "train_length": 10,
     "hidden_layers": 4,
     "dropout": true
