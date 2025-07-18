@@ -6,6 +6,8 @@ from torch import nn
 import utils
 from model.weather_network import WeatherNetwork
 
+INDEX = 15
+
 test_path = "data/Torino/Torino_Weather2025-01-01-2025-07-12.csv"
 
 geo_csv = pandas.read_csv("data/capoluoghi_regione_italiani.csv")
@@ -22,7 +24,7 @@ geo = {
 }
 
 test_dataset = utils.normalize_and_separate(geo, test_path)
-for t in test_dataset[0]["Inputs"]:
+for t in test_dataset[INDEX]["Inputs"]:
     print(utils.denormalize(t[5:]))
     print()
 
@@ -36,20 +38,43 @@ model.load_state_dict(checkpoint['state_dict'])
 
 model.eval()
 
-pred = model(test_dataset[0]["Geo"].unsqueeze(0), test_dataset[0]["Inputs"].unsqueeze(0))
+pred = model(test_dataset[INDEX]["Geo"].unsqueeze(0), test_dataset[INDEX]["Inputs"].unsqueeze(0))
+pred_list = []
 for p in pred.squeeze(0):
-    print(utils.denormalize(p))
+    pr = utils.denormalize(p)
+    print(pr)
+    pred_list.append(pr)
     print()
 
 print()
 print("-----------REAL VALUES-----------\n")
-for r in test_dataset[0]["Labels"]:
-    print(utils.denormalize(r))
+real_list = []
+for r in test_dataset[INDEX]["Labels"]:
+    real = utils.denormalize(r)
+    print(real)
+    real_list.append(real)
     print()
 
 loss_fn = nn.SmoothL1Loss()
-loss = loss_fn(test_dataset[0]["Labels"], pred.squeeze(0))
+loss = loss_fn(test_dataset[INDEX]["Labels"], pred.squeeze(0))
 print()
 print("-----------LOSS-----------")
 print(loss.item())
 
+print()
+print("-----------SUMMARY-----------")
+real_list = pandas.DataFrame.from_dict(real_list)
+pred_list = pandas.DataFrame.from_dict(pred_list)
+print()
+print("PRED:")
+print(f"Temp: {min(pred_list['TEMP'])} - {max(pred_list['TEMP'])}")
+print(f"Hum: {min(pred_list['HUM'])} - {max(pred_list['HUM'])}")
+print(f"Total prec: {pred_list['PREC'].sum}")
+print(f"Wind: {min(pred_list['WIND'])} - {max(pred_list['WIND'])}")
+
+print()
+print("REAL:")
+print(f"Temp: {min(real_list['TEMP'])} - {max(real_list['TEMP'])}")
+print(f"Hum: {min(real_list['HUM'])} - {max(real_list['HUM'])}")
+print(f"Total prec: {real_list['PREC'].sum}")
+print(f"Wind: {min(real_list['WIND'])} - {max(real_list['WIND'])}")

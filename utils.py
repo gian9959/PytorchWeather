@@ -77,15 +77,15 @@ def normalize_and_separate(geo, path):
 
         # weather normalization
         if MAX_TEMP >= float(row["temperature_2m"]) >= MIN_TEMP:
-            temp = np.log1p(float(row["temperature_2m"])-MIN_TEMP)
-            feat_list.append((temp - np.log1p(MIN_TEMP-MIN_TEMP)) / (np.log1p(MAX_TEMP-MIN_TEMP) - np.log1p(MIN_TEMP-MIN_TEMP)))
+            temp = float(np.log1p(float(row["temperature_2m"])-MIN_TEMP))
+            feat_list.append(temp / (np.log1p(MAX_TEMP - MIN_TEMP)))
         else:
             raise Exception(f'ERROR - TEMPERATURE OUT OF RANGE: {float(row["temperature_2m"])}')
 
         feat_list.append(float(row["relative_humidity_2m"]) / 100.0)
 
         if MAX_PREC >= float(row["precipitation"]) >= 0:
-            prec = np.log1p(float(row["precipitation"]))
+            prec = float(np.log1p(float(row["precipitation"])))
             feat_list.append(prec / np.log1p(MAX_PREC))
         else:
             raise Exception(f'ERROR - PRECIPITATIONS OUT OF RANGE: {float(row["precipitation"])}')
@@ -96,7 +96,7 @@ def normalize_and_separate(geo, path):
         feat_list.append(float(row["cloud_cover"]) / 100.0)
 
         if MAX_WIND >= float(row["wind_speed_10m"]) >= 0:
-            wind = np.log1p(float(row["wind_speed_10m"]))
+            wind = float(np.log1p(float(row["wind_speed_10m"])))
             feat_list.append(wind / np.log1p(MAX_WIND))
         else:
             raise Exception(f'ERROR - WIND OUT OF RANGE: {float(row["wind_speed_10m"])}')
@@ -143,21 +143,21 @@ def load_all(dates):
 
 
 def denormalize(t):
-    out_string = ''
+    denormalized = dict()
 
     # temperature
-    out_string = "TEMP: " + str((t[0].item() * (MAX_TEMP-MIN_TEMP)) + MIN_TEMP)
+    denormalized.update({"TEMP": float(np.expm1(t[0].item() * np.log1p(MAX_TEMP-MIN_TEMP)) + MIN_TEMP)})
 
     # humidity
-    out_string = out_string + "\nHUM: " + str((t[1].item() * 100))
+    denormalized.update({"HUM": float(t[1].item() * 100)})
 
     # precipitation
-    out_string = out_string + "\nPREC: " + str(t[2].item() * MAX_PREC)
+    denormalized.update({"PREC": float(np.expm1(t[2].item() * np.log1p(MAX_PREC)))})
 
     # cloud cover
-    out_string = out_string + "\nCLOUD: " + str(t[3].item() * 100)
+    denormalized.update({"CLOUD": float(t[3].item() * 100)})
 
     # wind speed
-    out_string = out_string + "\nWIND: " + str(t[4].item() * MAX_WIND)
+    denormalized.update({"WIND": float(np.expm1(t[4].item() * np.log1p(MAX_WIND)))})
 
-    return out_string
+    return denormalized
