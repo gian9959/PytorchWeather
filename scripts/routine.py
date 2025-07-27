@@ -9,7 +9,7 @@ import model.datasets.city_dataset as cd
 tr_files = ["2000-01-01-2009-12-31", "2010-01-01-2019-12-31"]
 val_files = ["2020-01-01-2024-12-31"]
 
-with open('config.json', 'r') as f:
+with open('../config.json', 'r') as f:
     config = json.load(f)
 
 print('Loading training dataset...')

@@ -29,7 +29,7 @@ MAX_ALT = 1300
 
 # w_codes_csv = pandas.read_csv("data/wmo_weather_codes.csv")
 
-geo_csv = pandas.read_csv("data/italian_cities.csv")
+geo_csv = pandas.read_csv("../data/italian_cities.csv")
 
 
 def normalize_and_separate(geo, path):
@@ -140,12 +140,12 @@ def normalize_and_separate(geo, path):
 
 def load_all(dates):
     final_datasets = []
-    for region in os.listdir("./data"):
-        if os.path.isdir(f"./data/{region}"):
+    for region in os.listdir("../data"):
+        if os.path.isdir(f"../data/{region}"):
             region_list = []
             print(f"{region}:")
-            for city in os.listdir(f"./data/{region}"):
-                if os.path.isdir(f"./data/{region}/{city}"):
+            for city in os.listdir(f"../data/{region}"):
+                if os.path.isdir(f"../data/{region}/{city}"):
                     city_list = []
                     g_row = geo_csv.loc[geo_csv["City"] == city]
                     print(f"Loading {city} data...")
@@ -155,7 +155,7 @@ def load_all(dates):
                             "Longitude": g_row["Longitude"].item(),
                             "Altitude": g_row["Altitude"].item()
                         }
-                        ds = normalize_and_separate(geo=geo, path=f"./data/{region}/{city}/{city}_Weather{end_d}.csv")
+                        ds = normalize_and_separate(geo=geo, path=f"../data/{region}/{city}/{city}_Weather{end_d}.csv")
                         city_list.append(ds)
                     city_dataset = torch.utils.data.ConcatDataset([c for c in city_list])
                     region_list.append(city_dataset)
