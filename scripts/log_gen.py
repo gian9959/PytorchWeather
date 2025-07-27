@@ -6,11 +6,11 @@ from torch.utils.data import DataLoader
 
 import utils
 import learning_functions as lf
-from model.datasets.region_dataset import collate_fn
+from model.datasets.city_dataset import collate_fn
 
 val_files = ["2020-01-01-2024-12-31"]
 
-with open('config.json', 'r') as f:
+with open('../config.json', 'r') as f:
     config = json.load(f)
 
 print('Loading validation dataset...')

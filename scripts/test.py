@@ -10,9 +10,9 @@ INDEX = 15
 
 test_path = "data/Torino/Torino_Weather2025-01-01-2025-07-12.csv"
 
-geo_csv = pandas.read_csv("data/capoluoghi_regione_italiani.csv")
+geo_csv = pandas.read_csv("../data/italian_cities.csv")
 
-with open('config.json', 'r') as f:
+with open('../config.json', 'r') as f:
     config = json.load(f)
 model_params = config['model_params']
 

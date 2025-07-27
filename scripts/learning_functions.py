@@ -70,7 +70,7 @@ def training(loader, model_params):
         checkpoint = {'epoch': epoch, 'hidden_layers': hidden_layers, 'dropout': dropout,
                       'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'tr_loss': tr_loss}
 
-        save_path = f"./checkpoints/{hidden_layers}H{dr_string}/Epoch{epoch}_checkpoint.pth"
+        save_path = f"../checkpoints/{hidden_layers}H{dr_string}/Epoch{epoch}_checkpoint.pth"
         torch.save(checkpoint, save_path)
 
     return save_path
