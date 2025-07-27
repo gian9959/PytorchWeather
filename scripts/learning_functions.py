@@ -4,7 +4,7 @@ import torch
 from alive_progress import alive_bar
 from torch import nn
 
-from model.weather_network import WeatherNetwork
+from model.forecast_model import ForecastModel
 
 
 def training(loader, model_params):
@@ -28,14 +28,14 @@ def training(loader, model_params):
         if checkpoint['dropout'] is not None:
             dropout = checkpoint['dropout']
 
-        model = WeatherNetwork(input_size=10, output_size=5, hidden_layers=hidden_layers, dropout=dropout)
+        model = ForecastModel(input_size=11, output_size=6, hidden_layers=hidden_layers, dropout=dropout)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
     else:
         print("Checkpoint NOT loaded")
-        model = WeatherNetwork(input_size=10, output_size=5, hidden_layers=hidden_layers, dropout=dropout)
+        model = ForecastModel(input_size=11, output_size=6, hidden_layers=hidden_layers, dropout=dropout)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     print(f"Hidden layers: {hidden_layers}")
@@ -48,16 +48,20 @@ def training(loader, model_params):
     loss_fn = nn.SmoothL1Loss()
     model.train()
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     for epoch in range(starting_epoch, starting_epoch + train_length):
         tr_loss = 0.0
         with alive_bar(len(loader)) as bar:
             for inputs, labels, geos in loader:
-                scores = model(geos, inputs)
-                loss = loss_fn(scores, labels)
-                tr_loss += loss.item()
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                N = geos.shape[1]
+                for t_idx in range(N):
+                    scores = model(geos, inputs, torch.tensor([t_idx]))
+                    loss = loss_fn(scores, labels[:, t_idx])
+                    tr_loss += loss.item()
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
                 bar()
 
         tr_loss = tr_loss / len(loader)
@@ -84,7 +88,7 @@ def validation(loader, model_params):
     if checkpoint['dropout'] is not None:
         dropout = checkpoint['dropout']
 
-    model = WeatherNetwork(input_size=10, output_size=5, hidden_layers=hidden_layers, dropout=dropout)
+    model = ForecastModel(input_size=11, output_size=6, hidden_layers=hidden_layers, dropout=dropout)
     model.load_state_dict(checkpoint['state_dict'])
 
     model.eval()
@@ -95,9 +99,11 @@ def validation(loader, model_params):
     with torch.no_grad():
         with alive_bar(len(loader)) as bar:
             for inputs, labels, geos in loader:
-                scores = model(geos, inputs)
-                loss = loss_fn(scores, labels)
-                val_loss += loss.item()
+                N = geos.shape[1]
+                for t_idx in range(N):
+                    scores = model(geos, inputs, torch.tensor([t_idx]))
+                    loss = loss_fn(scores, labels)
+                    val_loss += loss.item()
                 bar()
 
     print(f"Validation Loss: {val_loss / len(loader):.4f}")

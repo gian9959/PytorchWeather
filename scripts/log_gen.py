@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import utils
 import learning_functions as lf
-from model.weather_dataset import collate_fn
+from model.datasets.region_dataset import collate_fn
 
 val_files = ["2020-01-01-2024-12-31"]
 

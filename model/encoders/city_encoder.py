@@ -1,11 +1,10 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as func
 
 
-class WeatherNetwork(nn.Module):
-    def __init__(self, input_size, output_size, horizon_size=24, hidden_size=64, hidden_layers=0, dropout=False):
+class CityEncoder(nn.Module):
+    def __init__(self, input_size, output_size, horizon_size=24, hidden_size=64, hidden_layers=1, dropout=False):
         super().__init__()
         self.hs = horizon_size
 
@@ -28,7 +27,7 @@ class WeatherNetwork(nn.Module):
                 if self.dr:
                     self.dropout_layers.append(nn.Dropout(0.3))
 
-        self.output_layer = nn.Linear(hidden_size+2, output_size)
+        self.output_layer = nn.Linear(hidden_size, output_size)
 
     def forward(self, geo_data, weather_data):
         geo_emb = func.relu(self.geo_layer(geo_data))
@@ -45,22 +44,6 @@ class WeatherNetwork(nn.Module):
                 if self.dr:
                     features = self.dropout_layers[i](features)
 
-        features_seq = features.unsqueeze(1).repeat(1, self.hs, 1)
-
-        batch_size = features.size(0)
-        device = features.device
-
-        t = torch.arange(self.hs, device=device).float() / self.hs
-
-        sin_t = torch.sin(2 * np.pi * t)
-        cos_t = torch.cos(2 * np.pi * t)
-
-        time_encoding = torch.stack([sin_t, cos_t], dim=1)
-
-        time_encoding = time_encoding.unsqueeze(0).expand(batch_size, -1, -1)
-
-        decoder_input = torch.cat([features_seq, time_encoding], dim=-1)
-
-        output = self.output_layer(decoder_input)
+        output = self.output_layer(features)
 
         return output

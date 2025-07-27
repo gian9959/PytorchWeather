@@ -5,14 +5,18 @@ import numpy as np
 import pandas
 import torch
 
-from model.weather_dataset import WeatherDataset
+from model.datasets.city_dataset import CityWeatherDataset
+from model.datasets.region_dataset import RegionWeatherDataset
 
 MIN_TEMP = -25
 MAX_TEMP = 50
 
-MAX_PREC = 30
+MAX_PREC = 40
 
 MAX_WIND = 75
+
+MIN_PRES = 800
+MAX_PRES = 1100
 
 MIN_LAT = 35
 MAX_LAT = 50
@@ -21,11 +25,11 @@ MIN_LON = 5
 MAX_LON = 20
 
 MIN_ALT = 0
-MAX_ALT = 1000
+MAX_ALT = 1300
 
 # w_codes_csv = pandas.read_csv("data/wmo_weather_codes.csv")
 
-geo_csv = pandas.read_csv("data/capoluoghi_regione_italiani.csv")
+geo_csv = pandas.read_csv("data/italian_cities.csv")
 
 
 def normalize_and_separate(geo, path):
@@ -82,7 +86,10 @@ def normalize_and_separate(geo, path):
         else:
             raise Exception(f'ERROR - TEMPERATURE OUT OF RANGE: {float(row["temperature_2m"])}')
 
-        feat_list.append(float(row["relative_humidity_2m"]) / 100.0)
+        if 100 >= float(row["relative_humidity_2m"]) >= 0:
+            feat_list.append(float(row["relative_humidity_2m"]) / 100.0)
+        else:
+            raise Exception(f'ERROR - HUMIDITY OUT OF RANGE: {float(row["relative_humidity_2m"])}')
 
         if MAX_PREC >= float(row["precipitation"]) >= 0:
             prec = float(np.log1p(float(row["precipitation"])))
@@ -93,7 +100,15 @@ def normalize_and_separate(geo, path):
         # w_row = (w_codes_csv.loc[w_codes_csv["Code"] == row["weather_code"]]).index[0]
         # feat_list.append(w_row)
 
-        feat_list.append(float(row["cloud_cover"]) / 100.0)
+        if MAX_PRES >= float(row["surface_pressure"]) >= MIN_PRES:
+            feat_list.append((float(row["surface_pressure"]) - MIN_PRES) / (MAX_PRES - MIN_PRES))
+        else:
+            raise Exception(f'ERROR - SURFACE PRESSURE OUT OF RANGE: {float(row["surface_pressure"])}')
+
+        if 100 >= float(row["cloud_cover"]) >= 0:
+            feat_list.append(float(row["cloud_cover"]) / 100.0)
+        else:
+            raise Exception(f'ERROR - CLOUD COVER OUT OF RANGE: {float(row["cloud_cover"])}')
 
         if MAX_WIND >= float(row["wind_speed_10m"]) >= 0:
             wind = float(np.log1p(float(row["wind_speed_10m"])))
@@ -118,46 +133,58 @@ def normalize_and_separate(geo, path):
     else:
         raise Exception(f'ERROR - ALTITUDE OUT OF RANGE: {float(geo["Altitude"])}')
 
-    w_dataset = WeatherDataset(geo=geo, raw_data=data_list)
+    w_dataset = CityWeatherDataset(geo=geo, raw_data=data_list)
 
     return w_dataset
 
 
 def load_all(dates):
-    dataset_list = []
-    for p in os.listdir("./data"):
-        if os.path.isdir("./data/" + p):
-            g_row = geo_csv.loc[geo_csv["City"] == p]
-            print(f"Loading {p} data...")
-            for end_p in dates:
-                geo = {
-                    "Latitude": g_row.get("Latitude").item(),
-                    "Longitude": g_row["Longitude"].item(),
-                    "Altitude": g_row["Altitude"].item()
-                }
-                ds = normalize_and_separate(geo=geo, path=f"./data/{p}/{p}_Weather{end_p}.csv")
-                dataset_list.append(ds)
+    final_datasets = []
+    for region in os.listdir("./data"):
+        if os.path.isdir(f"./data/{region}"):
+            region_list = []
+            print(f"{region}:")
+            for city in os.listdir(f"./data/{region}"):
+                if os.path.isdir(f"./data/{region}/{city}"):
+                    city_list = []
+                    g_row = geo_csv.loc[geo_csv["City"] == city]
+                    print(f"Loading {city} data...")
+                    for end_d in dates:
+                        geo = {
+                            "Latitude": g_row.get("Latitude").item(),
+                            "Longitude": g_row["Longitude"].item(),
+                            "Altitude": g_row["Altitude"].item()
+                        }
+                        ds = normalize_and_separate(geo=geo, path=f"./data/{region}/{city}/{city}_Weather{end_d}.csv")
+                        city_list.append(ds)
+                    city_dataset = torch.utils.data.ConcatDataset([c for c in city_list])
+                    region_list.append(city_dataset)
+            region_dataset = RegionWeatherDataset(region_list)
+            final_datasets.append(region_dataset)
 
-    weather_dataset = torch.utils.data.ConcatDataset([c for c in dataset_list])
-    return weather_dataset
+    all_datasets = torch.utils.data.ConcatDataset([r for r in final_datasets])
+    return all_datasets
 
 
 def denormalize(t):
     denormalized = dict()
 
     # temperature
-    denormalized.update({"TEMP": float(np.expm1(t[0].item() * np.log1p(MAX_TEMP-MIN_TEMP)) + MIN_TEMP)})
+    denormalized.update({"TEMPERATURE": float(np.expm1(t[0].item() * np.log1p(MAX_TEMP-MIN_TEMP)) + MIN_TEMP)})
 
     # humidity
-    denormalized.update({"HUM": float(t[1].item() * 100)})
+    denormalized.update({"HUMIDITY": float(t[1].item() * 100)})
 
     # precipitation
-    denormalized.update({"PREC": float(np.expm1(t[2].item() * np.log1p(MAX_PREC)))})
+    denormalized.update({"PRECIPITATION": float(np.expm1(t[2].item() * np.log1p(MAX_PREC)))})
+
+    # pressure
+    denormalized.update({"PRESSURE": float(t[3].item() * (MAX_PRES-MIN_PRES)) + MIN_PRES})
 
     # cloud cover
-    denormalized.update({"CLOUD": float(t[3].item() * 100)})
+    denormalized.update({"CLOUD": float(t[4].item() * 100)})
 
     # wind speed
-    denormalized.update({"WIND": float(np.expm1(t[4].item() * np.log1p(MAX_WIND)))})
+    denormalized.update({"WIND": float(np.expm1(t[5].item() * np.log1p(MAX_WIND)))})
 
     return denormalized

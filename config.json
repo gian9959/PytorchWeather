@@ -1,13 +1,13 @@
 {
   "model_params": {
-    "checkpoint": "./checkpoints/2H_dr/Epoch100_checkpoint.pth",
+    "checkpoint": "",
     "train_length": 10,
-    "hidden_layers": 4,
-    "dropout": true
+    "hidden_layers": 2,
+    "dropout": false
   },
 
   "log_params": {
-    "source": "./checkpoints/4H_dr",
-    "dest": "./logs/4H_dr.csv"
+    "source": "./checkpoints/3H_dr",
+    "dest": "./logs/3H_dr.csv"
   }
 }
