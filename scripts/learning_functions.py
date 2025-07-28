@@ -48,20 +48,16 @@ def training(loader, model_params):
     loss_fn = nn.SmoothL1Loss()
     model.train()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     for epoch in range(starting_epoch, starting_epoch + train_length):
         tr_loss = 0.0
         with alive_bar(len(loader)) as bar:
-            for inputs, labels, geos in loader:
-                N = geos.shape[1]
-                for t_idx in range(N):
-                    scores = model(geos, inputs, torch.tensor([t_idx]))
-                    loss = loss_fn(scores, labels[:, t_idx])
-                    tr_loss += loss.item()
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
+            for inputs, labels, geos, mask, targets in loader:
+                scores = model(geos, inputs, targets, mask)
+                loss = loss_fn(scores, labels[torch.arange(labels.size(0)), targets])
+                tr_loss += loss.item()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
                 bar()
 
         tr_loss = tr_loss / len(loader)
@@ -98,12 +94,10 @@ def validation(loader, model_params):
 
     with torch.no_grad():
         with alive_bar(len(loader)) as bar:
-            for inputs, labels, geos in loader:
-                N = geos.shape[1]
-                for t_idx in range(N):
-                    scores = model(geos, inputs, torch.tensor([t_idx]))
-                    loss = loss_fn(scores, labels)
-                    val_loss += loss.item()
+            for inputs, labels, geos, mask, targets in loader:
+                scores = model(geos, inputs, targets, mask)
+                loss = loss_fn(scores, labels[torch.arange(labels.size(0)), targets])
+                val_loss += loss.item()
                 bar()
 
     print(f"Validation Loss: {val_loss / len(loader):.4f}")

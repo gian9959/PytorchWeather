@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import learning_functions as lf
 import utils
 
-import model.datasets.city_dataset as cd
+import model.datasets.region_dataset as rd
 
 tr_files = ["2000-01-01-2009-12-31", "2010-01-01-2019-12-31"]
 val_files = ["2020-01-01-2024-12-31"]
@@ -14,7 +14,7 @@ with open('../config.json', 'r') as f:
 
 print('Loading training dataset...')
 tr_dataset = utils.load_all(tr_files)
-tr_loader = DataLoader(tr_dataset, batch_size=1, collate_fn=cd.collate_fn, shuffle=True)
+tr_loader = DataLoader(tr_dataset, batch_size=32, collate_fn=rd.collate_fn, shuffle=True)
 
 # print('Loading validation dataset...')
 # val_dataset = utils.load_all(val_files)
