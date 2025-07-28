@@ -7,7 +7,7 @@
   },
 
   "log_params": {
-    "source": "./checkpoints/3H_dr",
-    "dest": "./logs/3H_dr.csv"
+    "source": "./checkpoints/2H",
+    "dest": "./logs/2H.csv"
   }
 }

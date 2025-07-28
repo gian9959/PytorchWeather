@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import utils
 import learning_functions as lf
-from model.datasets.city_dataset import collate_fn
+from model.datasets.region_dataset import collate_fn
 
 val_files = ["2020-01-01-2024-12-31"]
 
@@ -15,7 +15,7 @@ with open('../config.json', 'r') as f:
 
 print('Loading validation dataset...')
 val_dataset = utils.load_all(val_files)
-val_loader = DataLoader(val_dataset, batch_size=1, collate_fn=collate_fn, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=32, collate_fn=collate_fn, shuffle=False)
 
 epochs = []
 tr_loss = []
