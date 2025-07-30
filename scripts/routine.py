@@ -13,8 +13,8 @@ with open('../config.json', 'r') as f:
     config = json.load(f)
 
 print('Loading training dataset...')
-tr_dataset = utils.load_all(tr_files)
-tr_loader = DataLoader(tr_dataset, batch_size=32, collate_fn=rd.collate_fn, shuffle=True)
+tr_dataset = utils.load_all(tr_files, "../data")
+tr_loader = DataLoader(tr_dataset, batch_size=64, collate_fn=rd.collate_fn, shuffle=True)
 
 # print('Loading validation dataset...')
 # val_dataset = utils.load_all(val_files)
@@ -22,7 +22,7 @@ tr_loader = DataLoader(tr_dataset, batch_size=32, collate_fn=rd.collate_fn, shuf
 
 model_params = config['model_params']
 
-for i in range(10):
+for i in range(7):
     model_params['checkpoint'] = lf.training(tr_loader, model_params)
     # lf.validation(val_loader, model_params)
 

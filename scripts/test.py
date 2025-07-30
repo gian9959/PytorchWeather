@@ -1,80 +1,84 @@
 import json
+import random
+
 import pandas
 import torch
-from torch import nn
+from torch.utils.data import DataLoader, Subset
 
 import utils
-from model.weather_network import WeatherNetwork
+from model.forecast_model import ForecastModel
+import model.datasets.region_dataset as rd
 
-INDEX = 15
-
-test_path = "data/Torino/Torino_Weather2025-01-01-2025-07-12.csv"
+test_date = ["2025-01-01-2025-07-12"]
 
 geo_csv = pandas.read_csv("../data/italian_cities.csv")
+test_cities = ["Alessandria",
+               "Asti",
+               "Biella",
+               "Cuneo",
+               "Novara",
+               "Torino",
+               "Verbania",
+               "Vercelli"]
 
 with open('../config.json', 'r') as f:
     config = json.load(f)
 model_params = config['model_params']
 
-g_row = geo_csv.loc[geo_csv["City"] == "Torino"]
-geo = {
-    "Latitude": g_row.get("Latitude").item(),
-    "Longitude": g_row["Longitude"].item(),
-    "Altitude": g_row["Altitude"].item()
-}
+test_dataset = utils.load_all(test_date, "../test_data")
 
-test_dataset = utils.normalize_and_separate(geo, test_path)
-for t in test_dataset[INDEX]["Inputs"]:
-    print(utils.denormalize(t[5:]))
-    print()
+INDEX = random.randint(0, len(test_dataset))
 
+# for td in test_dataset[INDEX]["Inputs"]:
+#     for t in td:
+#         print(utils.denormalize(t[5:]))
+#         print()
+
+
+print()
+print(f"CITY: {test_cities[test_dataset[INDEX]['Target']]}")
 print("-----------PREDICTION-----------\n")
 checkpoint = torch.load(model_params['checkpoint'])
 hidden_layers = checkpoint['hidden_layers']
 dropout = checkpoint['dropout']
 
-model = WeatherNetwork(input_size=10, output_size=5, hidden_layers=hidden_layers, dropout=dropout)
+test_subset = Subset(test_dataset, [INDEX])
+test_loader = DataLoader(test_subset, batch_size=1, collate_fn=rd.collate_fn, shuffle=False)
+
+model = ForecastModel(input_size=11, output_size=6, hidden_layers=hidden_layers, dropout=dropout)
 model.load_state_dict(checkpoint['state_dict'])
 
 model.eval()
 
-pred = model(test_dataset[INDEX]["Geo"].unsqueeze(0), test_dataset[INDEX]["Inputs"].unsqueeze(0))
-pred_list = []
-for p in pred.squeeze(0):
-    pr = utils.denormalize(p)
-    print(pr)
-    pred_list.append(pr)
-    print()
+for inputs, labels, geos, mask, targets in test_loader:
+    pred = model(geos, inputs, targets, mask)
+
+    pred_list = []
+    for p in pred.squeeze(0):
+        pr = utils.denormalize(p)
+        # print(pr)
+        pred_list.append(pr)
+
+print(f"TEMPERATURE: {min(list(temp['TEMPERATURE'] for temp in pred_list))} - {max(list(temp['TEMPERATURE'] for temp in pred_list))}")
+print(f"AVG HUMIDITY: {sum(list(temp['HUMIDITY'] for temp in pred_list)) / 24}")
+print(f"AVG PRECIPITATION: {sum(list(temp['PRECIPITATION'] for temp in pred_list)) / 24}")
+print(f"AVG PRESSURE: {sum(list(temp['PRESSURE'] for temp in pred_list)) / 24}")
+print(f"AVG CLOUD: {sum(list(temp['CLOUD'] for temp in pred_list)) / 24}")
+print(f"AVG WIND: {sum(list(temp['WIND'] for temp in pred_list)) / 24}")
 
 print()
 print("-----------REAL VALUES-----------\n")
 real_list = []
-for r in test_dataset[INDEX]["Labels"]:
-    real = utils.denormalize(r)
-    print(real)
-    real_list.append(real)
-    print()
+for inputs, labels, geos, mask, targets in test_loader:
+    lab = labels[torch.arange(labels.size(0)), targets]
+    for l in lab.squeeze(0):
+        real = utils.denormalize(l)
+        # print(real)
+        real_list.append(real)
 
-loss_fn = nn.SmoothL1Loss()
-loss = loss_fn(test_dataset[INDEX]["Labels"], pred.squeeze(0))
-print()
-print("-----------LOSS-----------")
-print(loss.item())
-
-print()
-print("-----------SUMMARY-----------")
-real_list = pandas.DataFrame.from_dict(real_list)
-pred_list = pandas.DataFrame.from_dict(pred_list)
-print()
-print("PRED:")
-print(f"Temp: {min(pred_list['TEMP'])} - {max(pred_list['TEMP'])}")
-print(f"Hum: {min(pred_list['HUM'])} - {max(pred_list['HUM'])}")
-print(f"Total prec: {pred_list['PREC'].sum}")
-print(f"Wind: {min(pred_list['WIND'])} - {max(pred_list['WIND'])}")
-
-print()
-print("REAL:")
-print(f"Temp: {min(real_list['TEMP'])} - {max(real_list['TEMP'])}")
-print(f"Hum: {min(real_list['HUM'])} - {max(real_list['HUM'])}")
-print(f"Total prec: {real_list['PREC'].sum}")
-print(f"Wind: {min(real_list['WIND'])} - {max(real_list['WIND'])}")
+print(f"TEMPERATURE: {min(list(temp['TEMPERATURE'] for temp in real_list))} - {max(list(temp['TEMPERATURE'] for temp in real_list))}")
+print(f"AVG HUMIDITY: {sum(list(temp['HUMIDITY'] for temp in real_list)) / 24}")
+print(f"AVG PRECIPITATION: {sum(list(temp['PRECIPITATION'] for temp in real_list)) / 24}")
+print(f"AVG PRESSURE: {sum(list(temp['PRESSURE'] for temp in real_list)) / 24}")
+print(f"AVG CLOUD: {sum(list(temp['CLOUD'] for temp in real_list)) / 24}")
+print(f"AVG WIND: {sum(list(temp['WIND'] for temp in real_list)) / 24}")

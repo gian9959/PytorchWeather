@@ -11,9 +11,9 @@ from model.datasets.region_dataset import RegionWeatherDataset
 MIN_TEMP = -25
 MAX_TEMP = 50
 
-MAX_PREC = 40
+MAX_PREC = 50
 
-MAX_WIND = 75
+MAX_WIND = 100
 
 MIN_PRES = 800
 MAX_PRES = 1100
@@ -138,24 +138,24 @@ def normalize_and_separate(geo, path):
     return w_dataset
 
 
-def load_all(dates):
+def load_all(dates, data_path):
     final_datasets = []
-    for region in os.listdir("../data"):
-        if os.path.isdir(f"../data/{region}"):
+    for region in os.listdir(data_path):
+        if os.path.isdir(f"{data_path}/{region}"):
             region_list = []
-            print(f"{region}:")
-            for city in os.listdir(f"../data/{region}"):
-                if os.path.isdir(f"../data/{region}/{city}"):
+            print(f"Loading {region}:")
+            for city in os.listdir(f"{data_path}/{region}"):
+                if os.path.isdir(f"{data_path}/{region}/{city}"):
                     city_list = []
                     g_row = geo_csv.loc[geo_csv["City"] == city]
-                    print(f"Loading {city} data...")
+                    print(f"{city}")
                     for end_d in dates:
                         geo = {
                             "Latitude": g_row.get("Latitude").item(),
                             "Longitude": g_row["Longitude"].item(),
                             "Altitude": g_row["Altitude"].item()
                         }
-                        ds = normalize_and_separate(geo=geo, path=f"../data/{region}/{city}/{city}_Weather{end_d}.csv")
+                        ds = normalize_and_separate(geo=geo, path=f"{data_path}/{region}/{city}/{city}_Weather{end_d}.csv")
                         city_list.append(ds)
                     city_dataset = torch.utils.data.ConcatDataset([c for c in city_list])
                     region_list.append(city_dataset)

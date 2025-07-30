@@ -15,7 +15,7 @@ with open('../config.json', 'r') as f:
 
 print('Loading validation dataset...')
 val_dataset = utils.load_all(val_files)
-val_loader = DataLoader(val_dataset, batch_size=32, collate_fn=collate_fn, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=64, collate_fn=collate_fn, shuffle=False)
 
 epochs = []
 tr_loss = []
