@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 
-from model.decoders.attention_decoder import AttentionDecoder
-from model.encoders.city_encoder import CityEncoder
+from src.weather_model.decoders.attention_decoder import AttentionDecoder
+from src.weather_model.encoders.city_encoder import CityEncoder
 
 
 class ForecastModel(nn.Module):

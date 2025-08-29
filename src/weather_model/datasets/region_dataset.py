@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as func
 from torch.utils.data import Dataset
 
-import model.datasets.city_dataset as cd
+import src.weather_model.datasets.city_dataset as cd
 
 
 class RegionWeatherDataset(Dataset):
