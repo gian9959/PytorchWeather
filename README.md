@@ -1,2 +1,2 @@
 # PytorchWeather
-Pytorch model to predict weather
+Pytorch model that predicts weather conditions
